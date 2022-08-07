@@ -39,7 +39,7 @@
                   <Insets left="50.0" />
                </GridPane.margin>
             </Button>
-            <TextField alignment="CENTER" prefHeight="72.0" prefWidth="400.0" promptText="Search for users" GridPane.columnIndex="1">
+            <TextField fx:id="searchUser" alignment="CENTER" prefHeight="72.0" prefWidth="400.0" promptText="Search for users" GridPane.columnIndex="1">
                <font>
                   <Font size="30.0" />
                </font>
@@ -47,9 +47,14 @@
                   <Insets right="30.0" />
                </GridPane.margin>
             </TextField>
+            <Button mnemonicParsing="false" text="Search !" GridPane.columnIndex="2">
+               <font>
+                  <Font size="25.0" />
+               </font>
+            </Button>
          </children>
       </GridPane>
-      <GridPane GridPane.rowIndex="1">
+      <GridPane onMouseClicked="#search" GridPane.rowIndex="1">
          <columnConstraints>
             <ColumnConstraints hgrow="SOMETIMES" maxWidth="572.0" minWidth="10.0" prefWidth="458.3999938964844" />
             <ColumnConstraints hgrow="SOMETIMES" maxWidth="394.4000244140625" minWidth="10.0" prefWidth="280.80000610351567" />
@@ -59,10 +64,9 @@
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
          </rowConstraints>
          <children>
-            <TableView>
+            <TableView fx:id="followersTable">
                <columns>
-                  <TableColumn prefWidth="75.0" text="C1" />
-                  <TableColumn prefWidth="75.0" text="C2" />
+                  <TableColumn fx:id="followersColumn" prefWidth="434.40000569820404" text="Name" />
                </columns>
             </TableView>
             <Button mnemonicParsing="false" onMouseClicked="#startChat" text="Start chatting !" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
@@ -70,6 +74,11 @@
                   <Font size="25.0" />
                </font>
             </Button>
+            <Label fx:id="messageLabel" alignment="CENTER" textFill="RED" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.valignment="CENTER">
+               <font>
+                  <Font size="20.0" />
+               </font>
+            </Label>
          </children>
          <GridPane.margin>
             <Insets left="30.0" right="30.0" />
