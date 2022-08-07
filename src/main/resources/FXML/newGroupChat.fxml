@@ -95,7 +95,7 @@
             </Button>
             <Label fx:id="messageLabel" textFill="RED" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.valignment="BOTTOM">
                <font>
-                  <Font size="20.0" />
+                  <Font size="15.0" />
                </font>
                <GridPane.margin>
                   <Insets bottom="50.0" />

@@ -7,6 +7,7 @@ public class Chats {
     private String lastTime = "";
     private String photoAddress = "";
     private String receiverName = "";
+    private String roll = "" ;
 
     public Chats(){
     }
@@ -57,5 +58,13 @@ public class Chats {
 
     public String getReceiverName() {
         return receiverName;
+    }
+
+    public void setRoll(String roll) {
+        this.roll = roll;
+    }
+
+    public String getRoll() {
+        return roll;
     }
 }

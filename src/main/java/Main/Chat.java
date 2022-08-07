@@ -33,6 +33,8 @@ public class Chat implements Initializable {
     static String receiverPhoto = "" ;
     static String chatName = "" ;
     static String chatType = "" ;
+    static String roll = "" ;
+    static ArrayList<Followers> myFollowersList = new ArrayList<>();
 
     @FXML
     TableView chatsTable ;
@@ -116,6 +118,7 @@ public class Chat implements Initializable {
             newChat.setChatName(name1);
             newChat.setReceiverName(name1);
             newChat.setType("group");
+            newChat.setRoll(resultSet.getString("roll"));
             groupChats.add(newChat);
         }
         for (Chats a:privateChats) {
@@ -148,21 +151,46 @@ public class Chat implements Initializable {
         receiverPhoto = selectedChat.get(0).getPhotoAddress();
         chatName = selectedChat.get(0).getChatName();
         chatType = selectedChat.get(0).getType();
+        roll = selectedChat.get(0).getRoll();
         Pane pane = null;
         pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
         Main.scene.setRoot(pane);
     }
 
-    public void newGroup(MouseEvent mouseEvent) throws IOException {
+    public void newGroup(MouseEvent mouseEvent) throws IOException, SQLException {
         Pane pane = null;
         pane = FXMLLoader.load(getClass().getResource("/FXML/newGroupChat.fxml"));
         Main.scene.setRoot(pane);
+
+        Connection conn = DriverManager.getConnection(DB_url, username, Password);
+        Statement statement = conn.createStatement();
+        String sql = "SELECT " + senderName + " FROM followers";
+        ResultSet resultSet = statement.executeQuery(sql);
+        myFollowersList.clear();
+        while (resultSet.next()) {
+            if (resultSet.getString(senderName) != null) {
+                Followers follower = new Followers(resultSet.getString(senderName));
+                myFollowersList.add(follower);
+            }
+        }
     }
 
-    public void newPV(MouseEvent mouseEvent) throws IOException {
+    public void newPV(MouseEvent mouseEvent) throws IOException, SQLException {
         Pane pane = null;
         pane = FXMLLoader.load(getClass().getResource("/FXML/newPVChat.fxml"));
         Main.scene.setRoot(pane);
+
+        Connection conn = DriverManager.getConnection(DB_url, username, Password);
+        Statement statement = conn.createStatement();
+        String sql = "SELECT " + senderName + " FROM followers";
+        ResultSet resultSet = statement.executeQuery(sql);
+        myFollowersList.clear();
+        while (resultSet.next()) {
+            if (resultSet.getString(senderName) != null) {
+                Followers follower = new Followers(resultSet.getString(senderName));
+                myFollowersList.add(follower);
+            }
+        }
     }
 
     public void allChats(MouseEvent mouseEvent) {
@@ -180,12 +208,6 @@ public class Chat implements Initializable {
         chatsList.clear();
         chatsList.addAll(groupChats);
     }
-//    public ObservableList<Chats> getChats (){
-//        ObservableList<Chats> chatsList= FXCollections.observableArrayList();
-//        chatsList.addAll(privateChats);
-//        chatsList.addAll(groupChats);
-//        return chatsList;
-//    }
 
 
     public void initialize(URL url, ResourceBundle resourceBundle) {

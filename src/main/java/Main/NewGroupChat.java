@@ -25,7 +25,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 
-import static Main.Chat.senderName;
+import static Main.Chat.*;
 
 public class NewGroupChat implements Initializable {
 
@@ -34,7 +34,7 @@ public class NewGroupChat implements Initializable {
     final String Password = "Tondar.1400";
 
     Chats newChat = new Chats();
-
+    ArrayList<Followers> members = new ArrayList<>();
 
     @FXML
     GridPane myGridPane;
@@ -65,12 +65,29 @@ public class NewGroupChat implements Initializable {
     public void addMember(MouseEvent mouseEvent) {
         ObservableList<Followers> selectedMember ;
         selectedMember = followersTable.getSelectionModel().getSelectedItems();
-
-
-
+        if (selectedMember.size() == 0){
+            messageLabel.setText("You haven't select a follower !");
+        }
+        else {
+            Followers followers = new Followers(selectedMember.get(0).getFollowerName());
+            boolean isAdded = false ;
+            for (Followers a:members) {
+                if (a.getFollowerName().equals(followers.getFollowerName())){
+                    isAdded = true;
+                    break;
+                }
+            }
+            if (isAdded){
+                messageLabel.setText(followers.getFollowerName() + " is already added !");
+            }
+            else {
+                members.add(followers);
+                messageLabel.setText("Added successfully");
+            }
+        }
     }
 
-    public void createGroup(MouseEvent mouseEvent) throws SQLException {
+    public void createGroup(MouseEvent mouseEvent) throws SQLException, IOException {
         if (groupNameField.getText().isEmpty()){
             messageLabel.setText("Please enter the group name !");
         }
@@ -81,30 +98,34 @@ public class NewGroupChat implements Initializable {
             newChat.setChatName(groupNameField.getText());
             newChat.setType("group");
             newChat.setReceiverName(groupNameField.getText());
-
-
-            ArrayList<Followers> followersList = new ArrayList<>();
-            try{
-                Connection conn = DriverManager.getConnection(DB_url, username, Password);
-                Statement statement2 = conn.createStatement();
-                String sql2 = "SELECT " + senderName + " FROM followers";
-
-
-                ResultSet resultSet2 = statement2.executeQuery(sql2);
-                while (resultSet2.next()) {
-                    if (resultSet2.getString(senderName) != null) {
-                        Followers follower = new Followers(resultSet2.getString(senderName));
-                        followersList.add(follower);
-                        Followers.followersList.add(resultSet2.getString(senderName));
-                        System.out.println(resultSet2.getString(senderName));
-                    }
+            newChat.setRoll("admin");
+            Connection conn = DriverManager.getConnection(DB_url, username, Password);
+            Statement statement = conn.createStatement();
+            String sql = "SELECT * FROM chatTable WHERE name LIKE '" + newChat.getChatName() + "'";
+            ResultSet resultSet = statement.executeQuery(sql);
+            if (resultSet.next()){
+                messageLabel.setText("The name " + newChat.getChatName() + " is already taken !");
+            }
+            else {
+                receiverName = newChat.getReceiverName();
+                receiverPhoto = newChat.getPhotoAddress();
+                chatName = newChat.getChatName();
+                chatType = newChat.getType();
+                sql = "CREATE TABLE " + chatName + " ( id int not null auto_increment , senderName varchar(255) not null , message varchar (255) not null , replyTo int not null , date varchar (255) not null , time varchar (255) not null , forwarded varchar (255) not null , primary key (id))";
+                statement.executeUpdate(sql);
+                sql = "insert into chatTable (name,type,image)" + "values ('" + chatName + "' , \"group\" , '" + receiverPhoto + "')";
+                statement.executeUpdate(sql);
+                for (Followers a:members) {
+                    sql = "insert into groupTable (groupName , username , roll) values ('" + chatName + "' , '" + a.getFollowerName() + "' , \"member\")";
+                    statement.executeUpdate(sql);
                 }
-                followersTable.setItems(FollowersList(followersList));
+                sql = "insert into groupTable (groupName , username , roll) values ('" + chatName + "' , '" + senderName + "' , \"admin\")";
+                statement.executeUpdate(sql);
+                roll = "admin";
+                Pane pane = null;
+                pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
+                Main.scene.setRoot(pane);
             }
-            catch (Exception e){
-
-            }
-
         }
     }
 
@@ -127,8 +148,10 @@ public class NewGroupChat implements Initializable {
     }
 
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        membersColumn.setCellValueFactory(new PropertyValueFactory<>("followerName"));
         followersColumn.setCellValueFactory(new PropertyValueFactory<>("followerName"));
-        //followersTable.setItems(FollowersList(selectedMember));
+        addedMembers.setItems(FollowersList(members));
+        followersTable.setItems(FollowersList(myFollowersList));
     }
 
 
@@ -136,12 +159,6 @@ public class NewGroupChat implements Initializable {
         ObservableList<Followers> followers = FXCollections.observableArrayList();
         followers.addAll(temp);
         return followers;
-    }
-
-    private ObservableList<Followings> FollowingsList (ArrayList<Followings> temp) {
-        ObservableList<Followings> followings = FXCollections.observableArrayList();
-        followings.addAll(temp);
-        return followings;
     }
 
 }
