@@ -102,6 +102,7 @@ public class ChatScreen implements Initializable {
                     newChat.setChatName(name1);
                     newChat.setReceiverName(resultSet.getString("username"));
                     newChat.setType("pv");
+                    newChat.setPhotoAddress(resultSet.getString("profileImage"));
                     privateChats.add(newChat);
                     break;
                 }
@@ -110,6 +111,7 @@ public class ChatScreen implements Initializable {
                     newChat.setChatName(name2);
                     newChat.setReceiverName(resultSet.getString("username"));
                     newChat.setType("pv");
+                    newChat.setPhotoAddress(resultSet.getString("profileImage"));
                     privateChats.add(newChat);
                     break;
                 }
@@ -124,6 +126,11 @@ public class ChatScreen implements Initializable {
             newChat.setReceiverName(name1);
             newChat.setType("group");
             newChat.setRoll(resultSet.getString("roll"));
+            sql = "SELECT * FROM chatTable WHERE name LIKE '" + name1 + "' AND type LIKE \"group\"";
+            resultSet1 = statement1.executeQuery(sql);
+            if (resultSet1.next()){
+                newChat.setPhotoAddress(resultSet1.getString("image"));
+            }
             groupChats.add(newChat);
         }
         for (Chats a:privateChats) {

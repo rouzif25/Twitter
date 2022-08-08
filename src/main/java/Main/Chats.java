@@ -1,5 +1,8 @@
 package Main;
 
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+
 public class Chats {
     private String chatName = "";
     private String type = "";
@@ -8,6 +11,7 @@ public class Chats {
     private String photoAddress = "";
     private String receiverName = "";
     private String roll = "" ;
+    private ImageView photo = new ImageView() ;
 
     public Chats(){
     }
@@ -46,6 +50,7 @@ public class Chats {
 
     public void setPhotoAddress(String photoAddress) {
         this.photoAddress = photoAddress;
+        this.photo.setImage(new Image(photoAddress));
     }
 
     public String getPhotoAddress() {
@@ -66,5 +71,13 @@ public class Chats {
 
     public String getRoll() {
         return roll;
+    }
+
+    public void setPhoto(ImageView photo) {
+        this.photo = photo;
+    }
+
+    public ImageView getPhoto() {
+        return photo;
     }
 }
