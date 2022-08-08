@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 import static Main.Chat.*;
+import static Main.ChatScreen.lastMessages;
 
 public class NewPVChat implements Initializable {
 
@@ -38,10 +39,76 @@ public class NewPVChat implements Initializable {
     Label messageLabel;
 
 
-    public void back(MouseEvent mouseEvent) throws IOException {
+    public void back(MouseEvent mouseEvent) throws IOException, SQLException {
         Pane pane = null;
         pane = FXMLLoader.load(getClass().getResource("/FXML/chat.fxml"));
         Main.scene.setRoot(pane);
+        privateChats.removeAll(privateChats);
+        groupChats.removeAll(groupChats);
+        chatsList.clear();
+        String name1 ;
+        String name2 ;
+        ResultSet resultSet;
+        ResultSet resultSet1;
+        Connection conn = DriverManager.getConnection(DB_url, username, Password);
+        Statement statement = conn.createStatement();
+        Statement statement1 = conn.createStatement();
+        String sql;
+        sql = "SELECT * FROM personalinformation ";
+        resultSet = statement.executeQuery(sql);
+        while (resultSet.next()){
+            name1 = senderName + "_" + resultSet.getString("username");
+            name2 = resultSet.getString("username") + "_" + senderName ;
+            sql = "SELECT * FROM chatTable WHERE type LIKE \"pv\"";
+            resultSet1 = statement1.executeQuery(sql);
+            while (resultSet1.next()){
+                if (resultSet1.getString("name").equals(name1)){
+                    Chats newChat = new Chats();
+                    newChat.setChatName(name1);
+                    newChat.setReceiverName(resultSet.getString("username"));
+                    newChat.setType("pv");
+                    privateChats.add(newChat);
+                    break;
+                }
+                else if (resultSet1.getString("name").equals(name2)){
+                    Chats newChat = new Chats();
+                    newChat.setChatName(name2);
+                    newChat.setReceiverName(resultSet.getString("username"));
+                    newChat.setType("pv");
+                    privateChats.add(newChat);
+                    break;
+                }
+            }
+        }
+        sql = "SELECT * FROM groupTable WHERE username LIKE '" + senderName + "'";
+        resultSet = statement.executeQuery(sql);
+        while (resultSet.next()){
+            name1 = resultSet.getString("groupName");
+            Chats newChat = new Chats();
+            newChat.setChatName(name1);
+            newChat.setReceiverName(name1);
+            newChat.setType("group");
+            newChat.setRoll(resultSet.getString("roll"));
+            groupChats.add(newChat);
+        }
+        for (Chats a:privateChats) {
+            sql = "SELECT * FROM " + a.getChatName() + " ORDER BY id DESC LIMIT 1";
+            resultSet = statement.executeQuery(sql);
+            if (resultSet.next()){
+                a.setLastMessage(resultSet.getString("message"));
+                a.setLastTime(resultSet.getString("date") + " | " + resultSet.getString("time"));
+            }
+        }
+        for (Chats a:groupChats) {
+            sql = "SELECT * FROM " + a.getChatName() + " ORDER BY id DESC LIMIT 1";
+            resultSet = statement.executeQuery(sql);
+            if (resultSet.next()){
+                a.setLastMessage(resultSet.getString("message"));
+                a.setLastTime(resultSet.getString("date") + " | " + resultSet.getString("time"));
+            }
+        }
+        chatsList.addAll(privateChats);
+        chatsList.addAll(groupChats);
     }
 
     public void startChat(MouseEvent mouseEvent) throws SQLException, IOException {
@@ -79,7 +146,52 @@ public class NewPVChat implements Initializable {
             Pane pane = null;
             pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
             Main.scene.setRoot(pane);
-            ChatScreen.chatting();
+
+            haveBlocked = false;
+            isBlocked = false;
+            Statement statement1 = conn.createStatement();
+            sql = "SELECT " + senderName + " FROM blockTable";
+            resultSet = statement.executeQuery(sql);
+            ResultSet resultSet1;
+            while (resultSet.next()) {
+                if (resultSet.getString(senderName) != null) {
+                    if (resultSet.getString(senderName).equals(receiverName)) {
+                        haveBlocked = true;
+                        break;
+                    }
+                }
+            }
+            sql = "SELECT " + receiverName + " FROM blockTable";
+            resultSet = statement.executeQuery(sql);
+            while (resultSet.next()) {
+                if (resultSet.getString(receiverName) != null) {
+                    if (resultSet.getString(receiverName).equals(senderName)) {
+                        isBlocked = true;
+                        break;
+                    }
+                }
+            }
+            sql = "SELECT * FROM " + chatName + " ORDER BY id DESC";
+            resultSet = statement.executeQuery(sql);
+            lastMessages.clear();
+            String message ;
+            while (resultSet.next()) {
+                message = resultSet.getString("id") + " ) " + resultSet.getString("senderName") + "\n";
+                if (!resultSet.getString("replyTo").equals("0")){
+                    sql = "SELECT * FROM " + chatName + " WHERE id LIKE " + resultSet.getString("replyTo");
+                    resultSet1 = statement1.executeQuery(sql);
+                    if (resultSet1.next()){
+                        message = message + "Reply to --> " + resultSet1.getString("message").substring(0,Integer.min(15,resultSet1.getString("message").length())) + " : ";
+                    }
+                }
+                else if (!resultSet.getString("forwarded").equals("-")){
+                    message = message + "Forwarded! from " + resultSet.getString("forwarded") + " : ";
+                }
+                message = message + resultSet.getString("message") + "\n";
+                message = message + resultSet.getString("time");
+                lastMessages.add(message);
+            }
+
         }
 
     }
@@ -99,7 +211,7 @@ public class NewPVChat implements Initializable {
             sql = "SELECT * FROM personalinformation WHERE username LIKE '" + receiverName + "'";
             resultSet = statement.executeQuery(sql);
             if (!resultSet.next()) {
-                messageLabel.setText("No username with name " + receiverName + " is available !");
+                messageLabel.setText("No username with name '" + receiverName + "' is available !");
             }
             else {
                 receiverPhoto = resultSet.getString("profileImage");
@@ -119,8 +231,53 @@ public class NewPVChat implements Initializable {
                 Pane pane = null;
                 pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
                 Main.scene.setRoot(pane);
-                ChatScreen.chatting();
-            }
+
+                haveBlocked = false;
+                isBlocked = false;
+                conn = DriverManager.getConnection(DB_url, username, Password);
+                statement = conn.createStatement();
+                Statement statement1 = conn.createStatement();
+                sql = "SELECT " + senderName + " FROM blockTable";
+                resultSet = statement.executeQuery(sql);
+                ResultSet resultSet1;
+                while (resultSet.next()) {
+                    if (resultSet.getString(senderName) != null) {
+                        if (resultSet.getString(senderName).equals(receiverName)) {
+                            haveBlocked = true;
+                            break;
+                        }
+                    }
+                }
+                sql = "SELECT " + receiverName + " FROM blockTable";
+                resultSet = statement.executeQuery(sql);
+                while (resultSet.next()) {
+                    if (resultSet.getString(receiverName) != null) {
+                        if (resultSet.getString(receiverName).equals(senderName)) {
+                            isBlocked = true;
+                            break;
+                        }
+                    }
+                }
+                sql = "SELECT * FROM " + chatName + " ORDER BY id DESC";
+                resultSet = statement.executeQuery(sql);
+                lastMessages.clear();
+                String message ;
+                while (resultSet.next()) {
+                    message = resultSet.getString("id") + " ) " + resultSet.getString("senderName") + "\n";
+                    if (!resultSet.getString("replyTo").equals("0")){
+                        sql = "SELECT * FROM " + chatName + " WHERE id LIKE " + resultSet.getString("replyTo");
+                        resultSet1 = statement1.executeQuery(sql);
+                        if (resultSet1.next()){
+                            message = message + "Reply to --> " + resultSet1.getString("message").substring(0,Integer.min(15,resultSet1.getString("message").length())) + " : ";
+                        }
+                    }
+                    else if (!resultSet.getString("forwarded").equals("-")){
+                        message = message + "Forwarded! from " + resultSet.getString("forwarded") + " : ";
+                    }
+                    message = message + resultSet.getString("message") + "\n";
+                    message = message + resultSet.getString("time");
+                    lastMessages.add(message);
+                }            }
         }
     }
 

@@ -3,14 +3,17 @@ package Main;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -33,10 +36,9 @@ public class ChatScreen implements Initializable {
     static final String Password = "Tondar.1400";
 
 
-    static boolean haveBlocked ;
-    static boolean isBlocked ;
     static ArrayList<String> lastMessages = new ArrayList<>();
     String replyTo = "0";
+
 
 
     @FXML
@@ -69,6 +71,10 @@ public class ChatScreen implements Initializable {
     GridPane myGridPane;
     @FXML
     Button actionButton;
+    @FXML
+    VBox messageVBox;
+    @FXML
+    ScrollPane messageScrollPane;
 
 
     public void back(MouseEvent mouseEvent) throws IOException, SQLException {
@@ -411,78 +417,55 @@ public class ChatScreen implements Initializable {
         resetTable("blockTable");
     }
 
-    public void sendPhoto(MouseEvent mouseEvent) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("All Images", "*.*"),
-                new FileChooser.ExtensionFilter("JPG", "*.jpg"),
-                new FileChooser.ExtensionFilter("PNG", "*.png")
-        );
+//    public void sendPhoto(MouseEvent mouseEvent) {
+//        FileChooser fileChooser = new FileChooser();
+//        fileChooser.getExtensionFilters().addAll(
+//                new FileChooser.ExtensionFilter("All Images", "*.*"),
+//                new FileChooser.ExtensionFilter("JPG", "*.jpg"),
+//                new FileChooser.ExtensionFilter("PNG", "*.png")
+//        );
+//
+//        Stage stage = (Stage) myGridPane.getScene().getWindow();
+//        File file=  fileChooser.showOpenDialog(stage);
+//        if(file!=null){
+//            //myTextField.setText(file.getAbsolutePath());
+//            Image image = new Image(file.toURI().toString());
+//            //newChat.setPhotoAddress(file.toURI().toString());
+//            //myImageView.setImage(image);
+//        }
+//    }
 
-        Stage stage = (Stage) myGridPane.getScene().getWindow();
-        File file=  fileChooser.showOpenDialog(stage);
-        if(file!=null){
-            //myTextField.setText(file.getAbsolutePath());
-            Image image = new Image(file.toURI().toString());
-            //newChat.setPhotoAddress(file.toURI().toString());
-            //myImageView.setImage(image);
+    public void sendMessage(MouseEvent mouseEvent) throws SQLException {
+        if (textMessage.getText().isEmpty()){
+            errorLabel.setText("Type a message first !");
         }
-    }
-
-    public void sendMessage(MouseEvent mouseEvent) {
-
-        replyTo = "0";
-    }
-
-    public static void chatting() throws SQLException {
-        haveBlocked = false;
-        isBlocked = false;
-        Connection conn = DriverManager.getConnection(DB_url, username, Password);
-        Statement statement = conn.createStatement();
-        Statement statement1 = conn.createStatement();
-        String sql = "SELECT " + senderName + " FROM blockTable";
-        ResultSet resultSet = statement.executeQuery(sql);
-        ResultSet resultSet1;
-        while (resultSet.next()) {
-            if (resultSet.getString(senderName) != null) {
-                if (resultSet.getString(senderName).equals(receiverName)) {
-                    haveBlocked = true;
-                    break;
-                }
-            }
-        }
-        sql = "SELECT " + receiverName + " FROM blockTable";
-        resultSet = statement.executeQuery(sql);
-        while (resultSet.next()) {
-            if (resultSet.getString(receiverName) != null) {
-                if (resultSet.getString(receiverName).equals(senderName)) {
-                    isBlocked = true;
-                    break;
-                }
-            }
-        }
-        sql = "SELECT * FROM " + chatName + " ORDER BY id DESC";
-        resultSet = statement.executeQuery(sql);
-        lastMessages.clear();
-        String message ;
-        while (resultSet.next()) {
-            message = resultSet.getString("id") + " ) " + resultSet.getString("senderName") + " : ";
-            if (!resultSet.getString("replyTo").equals("0")){
-                sql = "SELECT * FROM " + chatName + " WHERE id LIKE " + resultSet.getString("replyTo");
-                resultSet1 = statement1.executeQuery(sql);
-                if (resultSet1.next()){
-                    message = message + "Reply to --> " + resultSet1.getString("message").substring(0,Integer.min(7,resultSet1.getString("message").length())) + " : ";
-                }
-            }
-            else if (!resultSet.getString("forwarded").equals("-")){
-                message = message + "Forwarded! from " + resultSet.getString("forwarded") + " : ";
-            }
-            message = message + resultSet.getString("message");
+        else {
+            String message = textMessage.getText();
             lastMessages.add(message);
+            FXMLLoader fxmlLoader = new FXMLLoader(ChatScreen.class.getResource("/FXML/messageLayout.fxml"));
+            Parent parent = null;
+            try {
+                parent = fxmlLoader.load();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            MessageLayout message1 = fxmlLoader.getController();
+            message1.setMessageLabel(message);
+            messageVBox.getChildren().add(parent);
+            String sql = "" ;
+            if (chatType.equals("pv")) {
+                sql = "insert into " + chatName + " (senderName , receiverName , message , replyTo , seen , date , time , forwarded) values ('" + senderName + "' , '" + receiverName + "' , '" + message + "' , '" + replyTo + "' , \"no\" , " +
+                        LocalDate.now() + " , '" + LocalTime.now().format(Formatter1()) + "' , \"-\" )";
+            }
+            else if (chatType.equals("group")){
+                sql = "insert into " + chatName + " (senderName , message , replyTo , date , time , forwarded) values ('" + senderName + "' , '" + message + "' , '" + replyTo + "' , " +
+                        LocalDate.now() + " , '" + LocalTime.now().format(Formatter1()) + "' , \"-\")";
+            }
+            Connection conn = DriverManager.getConnection(DB_url, username, Password);
+            Statement statement = conn.createStatement();
+            statement.executeUpdate(sql);
+            replyTo = "0";
         }
-
-
-
     }
 
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -490,7 +473,7 @@ public class ChatScreen implements Initializable {
         chatPhoto.setImage(image);
         name.setText(receiverName);
         if (chatType.equals("group")){
-            groupMembers.setText("bayad dorost she !");
+            groupMembers.setText(members.get(0).getFollowerName() + " , " + members.get(1).getFollowerName() + " , ..." );
             actionButton.setText("Edit group");
         }
         else if (chatType.equals("pv")){
@@ -501,6 +484,18 @@ public class ChatScreen implements Initializable {
             else {
                 actionButton.setText("Block");
             }
+        }
+        for (int i = 0 ; i < lastMessages.size() ; i++){
+            FXMLLoader fxmlLoader = new FXMLLoader(ChatScreen.class.getResource("/FXML/messageLayout.fxml"));
+            Parent parent = null;
+            try {
+                parent = fxmlLoader.load();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            MessageLayout message1 = fxmlLoader.getController();
+            message1.setMessageLabel(lastMessages.get(i));
+            messageVBox.getChildren().add(parent);
         }
 
     }

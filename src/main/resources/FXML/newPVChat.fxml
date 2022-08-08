@@ -47,7 +47,7 @@
                   <Insets right="30.0" />
                </GridPane.margin>
             </TextField>
-            <Button mnemonicParsing="false" text="Search !" GridPane.columnIndex="2">
+            <Button mnemonicParsing="false" onMouseClicked="#search" text="Search !" GridPane.columnIndex="2">
                <font>
                   <Font size="25.0" />
                </font>

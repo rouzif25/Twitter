@@ -5,6 +5,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -17,6 +18,8 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 import java.sql.*;
+
+import static Main.ChatScreen.lastMessages;
 
 
 public class Chat implements Initializable {
@@ -36,6 +39,8 @@ public class Chat implements Initializable {
     static ArrayList<Followers> myFollowersList = new ArrayList<>();
     static ArrayList<Followers> members = new ArrayList<>();
     static ObservableList<Followers> showMembers = FXCollections.observableArrayList();
+    static boolean haveBlocked;
+    static boolean isBlocked;
 
 
     @FXML
@@ -48,9 +53,9 @@ public class Chat implements Initializable {
     TableColumn chatLastMessage ;
     @FXML
     TableColumn chatTime ;
+    @FXML
+    Label errorLabel;
 
-    public Chat() throws SQLException {
-    }
 
     public void followingsPost(MouseEvent mouseEvent) {
     }
@@ -146,18 +151,70 @@ public class Chat implements Initializable {
     public void logout(MouseEvent mouseEvent) {
     }
 
-    public void showChat(MouseEvent mouseEvent) throws IOException {
+    public void showChat(MouseEvent mouseEvent) throws IOException, SQLException {
         ObservableList<Chats> selectedChat ;
         selectedChat = chatsTable.getSelectionModel().getSelectedItems();
-        receiverName = selectedChat.get(0).getReceiverName();
-        receiverPhoto = selectedChat.get(0).getPhotoAddress();
-        chatName = selectedChat.get(0).getChatName();
-        chatType = selectedChat.get(0).getType();
-        roll = selectedChat.get(0).getRoll();
-        members.clear();
-        Pane pane = null;
-        pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
-        Main.scene.setRoot(pane);
+        if (selectedChat.size() == 0){
+            errorLabel.setText("Select a chat first !");
+        }
+        else {
+            receiverName = selectedChat.get(0).getReceiverName();
+            receiverPhoto = selectedChat.get(0).getPhotoAddress();
+            chatName = selectedChat.get(0).getChatName();
+            chatType = selectedChat.get(0).getType();
+            roll = selectedChat.get(0).getRoll();
+            members.clear();
+            Pane pane = null;
+            pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
+            Main.scene.setRoot(pane);
+
+            haveBlocked = false;
+            isBlocked = false;
+            Connection conn = DriverManager.getConnection(DB_url, username, Password);
+            Statement statement = conn.createStatement();
+            Statement statement1 = conn.createStatement();
+            String sql = "SELECT " + senderName + " FROM blockTable";
+            ResultSet resultSet = statement.executeQuery(sql);
+            ResultSet resultSet1;
+            while (resultSet.next()) {
+                if (resultSet.getString(senderName) != null) {
+                    if (resultSet.getString(senderName).equals(receiverName)) {
+                        haveBlocked = true;
+                        break;
+                    }
+                }
+            }
+            sql = "SELECT " + receiverName + " FROM blockTable";
+            resultSet = statement.executeQuery(sql);
+            while (resultSet.next()) {
+                if (resultSet.getString(receiverName) != null) {
+                    if (resultSet.getString(receiverName).equals(senderName)) {
+                        isBlocked = true;
+                        break;
+                    }
+                }
+            }
+            sql = "SELECT * FROM " + chatName + " ORDER BY id DESC";
+            resultSet = statement.executeQuery(sql);
+            lastMessages.clear();
+            String message ;
+            while (resultSet.next()) {
+                message = resultSet.getString("id") + " ) " + resultSet.getString("senderName") + "\n";
+                if (!resultSet.getString("replyTo").equals("0")){
+                    sql = "SELECT * FROM " + chatName + " WHERE id LIKE " + resultSet.getString("replyTo");
+                    resultSet1 = statement1.executeQuery(sql);
+                    if (resultSet1.next()){
+                        message = message + "Reply to --> " + resultSet1.getString("message").substring(0,Integer.min(15,resultSet1.getString("message").length())) + " : ";
+                    }
+                }
+                else if (!resultSet.getString("forwarded").equals("-")){
+                    message = message + "Forwarded! from " + resultSet.getString("forwarded") + " : ";
+                }
+                message = message + resultSet.getString("message") + "\n";
+                message = message + resultSet.getString("time");
+                lastMessages.add(message);
+            }
+        }
     }
 
     public void newGroup(MouseEvent mouseEvent) throws IOException, SQLException {
