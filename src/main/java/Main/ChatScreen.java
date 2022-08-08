@@ -36,6 +36,7 @@ public class ChatScreen implements Initializable {
     static boolean haveBlocked ;
     static boolean isBlocked ;
     static ArrayList<String> lastMessages = new ArrayList<>();
+    String replyTo = "0";
 
 
     @FXML
@@ -312,13 +313,102 @@ public class ChatScreen implements Initializable {
         }
     }
 
-    public void reply(MouseEvent mouseEvent) {
+    public void reply(MouseEvent mouseEvent) throws SQLException {
+        if (repliedMessageId.getText().isEmpty()){
+            errorLabel.setText("Enter the message id to reply");
+        }
+        else {
+            Connection conn = DriverManager.getConnection(DB_url, username, Password);
+            Statement statement = conn.createStatement();
+            String sql = "SELECT * FROM " + chatName + " WHERE id LIKE " + repliedMessageId.getText();
+            ResultSet resultSet = statement.executeQuery(sql);
+            if (resultSet.next()) {
+                replyTo = repliedMessageId.getText();
+                errorLabel.setText("Replying to message " + replyTo + " ...");
+            } else {
+                errorLabel.setText("No message with id " + repliedMessageId.getText() + " !");
+            }
+        }
     }
 
-    public void delete(MouseEvent mouseEvent) {
+    public void delete(MouseEvent mouseEvent) throws SQLException {
+        if (deletedMessageId.getText().isEmpty()){
+            errorLabel.setText("Enter the message id to delete !");
+        }
+        else {
+            String id = deletedMessageId.getText();
+            Connection conn = DriverManager.getConnection(DB_url, username, Password);
+            Statement statement = conn.createStatement();
+            String sql = "SELECT * FROM " + chatName + " WHERE id LIKE " + id;
+            ResultSet resultSet = statement.executeQuery(sql);
+            if (resultSet.next()) {
+                String message = resultSet.getString("senderName");
+                if (message.equals(senderName)) {
+                    sql = "SELECT * FROM " + chatName + " WHERE senderName LIKE '" + senderName + "' ORDER BY id DESC LIMIT 10 ";
+                    resultSet = statement.executeQuery(sql);
+                    boolean editable = false;
+                    while (resultSet.next()) {
+                        if (resultSet.getString("id").equals(id)) {
+                            editable = true;
+                            break;
+                        }
+                    }
+                    if (editable) {
+                        sql = "DELETE FROM " + chatName + " WHERE id LIKE " + id;
+                        statement.executeUpdate(sql);
+                        errorLabel.setText("Deleted successfully ");
+                        sql = "UPDATE " + chatName + " SET replyTo = 0 WHERE replyTo LIKE " + id;
+                        statement.executeUpdate(sql);
+                        resetTable(chatName);
+                    } else {
+                        errorLabel.setText("You can only delete your last 10 messages !");
+                    }
+                } else {
+                    errorLabel.setText("You can't delete other's messages ! ");
+                }
+            } else {
+                errorLabel.setText("No message with id " + id + " !");
+            }
+        }
     }
 
-    public void properAction(MouseEvent mouseEvent) {
+    public void properAction(MouseEvent mouseEvent) throws SQLException, IOException {
+        Connection conn = DriverManager.getConnection(DB_url, username, Password);
+        Statement statement = conn.createStatement();
+        String sql ;
+        if (chatType.equals("group")){
+            Pane pane = null;
+            pane = FXMLLoader.load(getClass().getResource("/FXML/editGroup.fxml"));
+            Main.scene.setRoot(pane);
+            statement = conn.createStatement();
+            sql = "SELECT " + senderName + " FROM followers";
+            ResultSet resultSet = statement.executeQuery(sql);
+            myFollowersList.clear();
+            while (resultSet.next()) {
+                if (resultSet.getString(senderName) != null) {
+                    Followers follower = new Followers(resultSet.getString(senderName));
+                    myFollowersList.add(follower);
+                }
+            }
+        }
+        else if (chatType.equals("pv")){
+            if (haveBlocked){
+                sql = "DELETE FROM blockTable WHERE " + senderName + " LIKE \"" + receiverName + "\"";
+                statement.executeUpdate(sql);
+                haveBlocked = false;
+                errorLabel.setText("Unblocked successfully ");
+                actionButton.setText("Block");
+            }
+            else {
+                sql = "insert into blockTable (" + senderName + ") values (\"" + receiverName + "\")";
+                statement.executeUpdate(sql);
+                haveBlocked = true;
+                errorLabel.setText("Blocked successfully ");
+                actionButton.setText("Unblock");
+            }
+        }
+        resetTable("groupTable");
+        resetTable("blockTable");
     }
 
     public void sendPhoto(MouseEvent mouseEvent) {
@@ -340,6 +430,8 @@ public class ChatScreen implements Initializable {
     }
 
     public void sendMessage(MouseEvent mouseEvent) {
+
+        replyTo = "0";
     }
 
     public static void chatting() throws SQLException {
@@ -393,13 +485,12 @@ public class ChatScreen implements Initializable {
 
     }
 
-
     public void initialize(URL url, ResourceBundle resourceBundle) {
         Image image = new Image(receiverPhoto);
         chatPhoto.setImage(image);
         name.setText(receiverName);
         if (chatType.equals("group")){
-            groupMembers.setText("");
+            groupMembers.setText("bayad dorost she !");
             actionButton.setText("Edit group");
         }
         else if (chatType.equals("pv")){
@@ -416,6 +507,31 @@ public class ChatScreen implements Initializable {
 
     private DateTimeFormatter Formatter1(){
         return DateTimeFormatter.ofPattern("HH:mm");
+    }
+
+    private void resetTable (String tableName) throws SQLException {
+        int n = 1 ;
+        int maxId = 0;
+        Connection conn = DriverManager.getConnection(DB_url, username, Password);
+        Statement statement = conn.createStatement();
+        String sql = "SELECT * FROM " + tableName ;
+        ResultSet resultSet = statement.executeQuery(sql);
+        while (resultSet.next()){
+            if (resultSet.getInt("id") > n) {
+                sql = "UPDATE " + tableName + " SET id = " + n + " WHERE id LIKE " + resultSet.getString("id");
+                statement.executeUpdate(sql);
+                sql = "UPDATE " + tableName + " SET replyTo = " + n + " WHERE replyTo LIKE " + resultSet.getString("id");
+                statement.executeUpdate(sql);
+            }
+            n++;
+        }
+        sql = "SELECT MAX(id) FROM " + tableName;
+        resultSet = statement.executeQuery(sql);
+        if (resultSet.next()) {
+            maxId = resultSet.getInt(1);
+        }
+        sql = "ALTER TABLE " + tableName + " AUTO_INCREMENT = " + (maxId + 1) ;
+        statement.executeUpdate(sql);
     }
 
 }

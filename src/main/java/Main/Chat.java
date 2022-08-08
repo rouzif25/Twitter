@@ -14,7 +14,6 @@ import javafx.scene.layout.Pane;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.ResourceBundle;
 
 import java.sql.*;
@@ -35,6 +34,9 @@ public class Chat implements Initializable {
     static String chatType = "" ;
     static String roll = "" ;
     static ArrayList<Followers> myFollowersList = new ArrayList<>();
+    static ArrayList<Followers> members = new ArrayList<>();
+    static ObservableList<Followers> showMembers = FXCollections.observableArrayList();
+
 
     @FXML
     TableView chatsTable ;
@@ -152,6 +154,7 @@ public class Chat implements Initializable {
         chatName = selectedChat.get(0).getChatName();
         chatType = selectedChat.get(0).getType();
         roll = selectedChat.get(0).getRoll();
+        members.clear();
         Pane pane = null;
         pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
         Main.scene.setRoot(pane);
@@ -162,6 +165,7 @@ public class Chat implements Initializable {
         pane = FXMLLoader.load(getClass().getResource("/FXML/newGroupChat.fxml"));
         Main.scene.setRoot(pane);
 
+        members.clear();
         Connection conn = DriverManager.getConnection(DB_url, username, Password);
         Statement statement = conn.createStatement();
         String sql = "SELECT " + senderName + " FROM followers";
@@ -209,7 +213,6 @@ public class Chat implements Initializable {
         chatsList.addAll(groupChats);
     }
 
-
     public void initialize(URL url, ResourceBundle resourceBundle) {
         chatPhoto.setCellValueFactory(new PropertyValueFactory<>("photoAddress"));
         myChatName.setCellValueFactory(new PropertyValueFactory<>("receiverName"));
@@ -221,4 +224,5 @@ public class Chat implements Initializable {
         chatsTable.sort();
 
     }
+
 }

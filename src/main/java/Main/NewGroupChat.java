@@ -34,7 +34,6 @@ public class NewGroupChat implements Initializable {
     final String Password = "Tondar.1400";
 
     Chats newChat = new Chats();
-    ArrayList<Followers> members = new ArrayList<>();
 
     @FXML
     GridPane myGridPane;
@@ -82,7 +81,10 @@ public class NewGroupChat implements Initializable {
             }
             else {
                 members.add(followers);
+                showMembers.clear();
+                showMembers.addAll(members);
                 messageLabel.setText("Added successfully");
+                addedMembers.refresh();
             }
         }
     }
@@ -151,10 +153,9 @@ public class NewGroupChat implements Initializable {
     public void initialize(URL url, ResourceBundle resourceBundle) {
         membersColumn.setCellValueFactory(new PropertyValueFactory<>("followerName"));
         followersColumn.setCellValueFactory(new PropertyValueFactory<>("followerName"));
-        addedMembers.setItems(FollowersList(members));
+        addedMembers.setItems(showMembers);
         followersTable.setItems(FollowersList(myFollowersList));
     }
-
 
     private ObservableList<Followers> FollowersList (ArrayList<Followers> temp) {
         ObservableList<Followers> followers = FXCollections.observableArrayList();
