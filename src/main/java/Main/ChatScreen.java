@@ -37,6 +37,8 @@ public class ChatScreen implements Initializable {
 
 
     static ArrayList<String> lastMessages = new ArrayList<>();
+    static ArrayList<String> searchedMessages = new ArrayList<>();
+    String searchedMessage = "";
     String replyTo = "0";
 
 
@@ -156,7 +158,33 @@ public class ChatScreen implements Initializable {
         Main.scene.setRoot(pane);
     }
 
-    public void search(MouseEvent mouseEvent) {
+    public void search(MouseEvent mouseEvent) throws IOException, SQLException {
+        if (searchBox.getText().isEmpty()){
+            errorLabel.setText("Enter the text tou want to search !");
+        }
+        else {
+            searchedMessage = searchBox.getText();
+            searchedMessages.clear();
+            Connection conn = DriverManager.getConnection(DB_url, username, Password);
+            Statement statement = conn.createStatement();
+            String  sql = "SELECT * FROM " + chatName + " WHERE message LIKE '" + "%" + searchedMessage + "%'";
+            ResultSet resultSet = statement.executeQuery(sql);
+            boolean searched = false;
+            while (resultSet.next()){
+                String message = resultSet.getString("id") + " ) Date = " + resultSet.getString("date") + " & Time = " + resultSet.getString("time") +
+                        " : " + resultSet.getString("message").substring(0,Integer.min(15,resultSet.getString("message").length()));
+                searchedMessages.add(message);
+                searched = true;
+            }
+            if (searched){
+                Pane pane = null;
+                pane = FXMLLoader.load(getClass().getResource("/FXML/search.fxml"));
+                Main.scene.setRoot(pane);
+            }
+            else {
+                errorLabel.setText("No message found which machs " + searchedMessage);
+            }
+        }
     }
 
     public void edit(MouseEvent mouseEvent) throws SQLException {
