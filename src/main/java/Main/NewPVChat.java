@@ -79,6 +79,7 @@ public class NewPVChat implements Initializable {
             Pane pane = null;
             pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
             Main.scene.setRoot(pane);
+            ChatScreen.chatting();
         }
 
     }
@@ -118,6 +119,7 @@ public class NewPVChat implements Initializable {
                 Pane pane = null;
                 pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
                 Main.scene.setRoot(pane);
+                ChatScreen.chatting();
             }
         }
     }

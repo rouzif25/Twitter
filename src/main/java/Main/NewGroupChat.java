@@ -125,6 +125,7 @@ public class NewGroupChat implements Initializable {
                 Pane pane = null;
                 pane = FXMLLoader.load(getClass().getResource("/FXML/chatScreen.fxml"));
                 Main.scene.setRoot(pane);
+                ChatScreen.chatting();
             }
         }
     }
